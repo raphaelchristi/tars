@@ -25,7 +25,8 @@ model = genai.GenerativeModel(
 )
 
 # Comandos permitidos
-ALLOWED_COMMANDS = ["ls", "cd", "pwd", "cp", "mv", "rm", "mkdir", "find", "grep", "df", "du"]
+ALLOWED_COMMANDS = ["ls", "cd", "pwd", "cp", "mv", "rm", "mkdir", "find", "grep", "df", "du", "tree", "touch", "cat", "echo", "head", "tail", "chmod", "chown", "tar", "zip", "unzip", "wget", "curl", "nano", "vim", "ps", "kill", "top", "htop", "sudo", "whoami", "uptime", "man", "history", "alias", "uname", "mount", "umount"]
+
 
 def execute_command(command, flags=None, args=None, requires_sudo=False):
     """Executa comandos Linux com validação."""
