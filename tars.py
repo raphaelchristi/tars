@@ -14,24 +14,45 @@ if not api_key:
 genai.configure(api_key=api_key)
 
 # Configuração do modelo
-model = genai.GenerativeModel(
-    model_name="gemini-2.0-flash-exp",
-    generation_config={
-        "temperature": 0.1,
-        "top_p": 0.95,
-        "top_k": 40,
-        "max_output_tokens": 8192,
-    }
-)
+try:
+    model = genai.GenerativeModel(
+        model_name="gemini-2.0-flash-exp",
+        generation_config={
+            "temperature": 0.1,
+            "top_p": 0.95,
+            "top_k": 40,
+            "max_output_tokens": 8192,
+        }
+    )
+except Exception as e:
+    print(f"Error initializing GenerativeModel: {e}")
+    exit(1)
 
 # Comandos permitidos
-ALLOWED_COMMANDS = ["ls", "cd", "pwd", "cp", "mv", "rm", "mkdir", "find", "grep", "df", "du", "tree", "touch", "cat", "echo", "head", "tail", "chmod", "chown", "tar", "zip", "unzip", "wget", "curl", "nano", "vim", "ps", "kill", "top", "htop", "sudo", "whoami", "uptime", "man", "history", "alias", "uname", "mount", "umount"]
-
+ALLOWED_COMMANDS = [
+    "ls", "cd", "pwd", "cp", "mv", "rm", "mkdir", "find", "grep", "df", "du", "tree",
+    "touch", "cat", "echo", "head", "tail", "chmod", "chown", "tar", "zip", "unzip", "wget",
+    "curl", "nano", "vim", "ps", "kill", "top", "htop", "sudo", "whoami", "uptime", "man",
+    "history", "alias", "uname", "mount", "umount"
+]
 
 def execute_command(command, flags=None, args=None, requires_sudo=False):
     """Executa comandos Linux com validação."""
     if command not in ALLOWED_COMMANDS:
         return f"Error: Command '{command}' is not allowed."
+
+    # Tratar o comando history separadamente
+    if command == "history":
+        try:
+            # Tenta ler o histórico do arquivo padrão do bash
+            history_file = os.path.expanduser("~/.bash_history")
+            with open(history_file, "r") as f:
+                history_content = f.readlines()
+            return ''.join(history_content[-20:])  # Retorna as últimas 20 entradas
+        except FileNotFoundError:
+            return "Error: Bash history file not found."
+        except Exception as e:
+            return f"Error accessing history: {str(e)}"
 
     full_command = [command]
     if flags:
@@ -46,9 +67,9 @@ def execute_command(command, flags=None, args=None, requires_sudo=False):
         output = result.stdout.strip()
         return output if output else "Comando executado com sucesso (sem saída)"
     except subprocess.CalledProcessError as e:
-        return f"Error executing command: {e.stderr}"
+        return f"Error executing command: {e.stderr.strip()}"
     except Exception as e:
-        return f"Error: {e}"
+        return f"Error: {str(e)}"
 
 # Configuração do chat
 SYSTEM_PROMPT = """Você é um assistente Linux especializado em ajudar com comandos do terminal.
@@ -62,18 +83,22 @@ Regras importantes:
 6. No comando ls, use -la quando quiser mostrar detalhes
 """
 
-chat = model.start_chat(
-    history=[
-        {
-            "role": "user",
-            "parts": [SYSTEM_PROMPT]
-        },
-        {
-            "role": "model", 
-            "parts": ["Entendido. Vou executar os comandos diretamente usando execute_command."]
-        }
-    ]
-)
+try:
+    chat = model.start_chat(
+        history=[
+            {
+                "role": "user",
+                "parts": [SYSTEM_PROMPT]
+            },
+            {
+                "role": "model", 
+                "parts": ["Entendido. Vou executar os comandos diretamente usando execute_command."]
+            }
+        ]
+    )
+except Exception as e:
+    print(f"Error initializing chat: {e}")
+    exit(1)
 
 def process_input(user_input):
     try:
